@@ -1,0 +1,31 @@
+environments:
+  dev:
+    values:
+      - ./environments/dev/global.yaml
+      - ./observability/loki/values/dev/loki.yaml
+  prod:
+    values:
+      - ./environments/prod/global.yaml
+      - ./observability/loki/values/prod/loki.yaml
+
+---
+repositories:
+  - name: grafana-community
+    url: https://grafana-community.github.io/helm-charts
+
+helmDefaults:
+  createNamespace: true
+  wait: true
+  timeout: 600
+  cleanupOnFail: true
+
+releases:
+  - name: loki
+    labels:
+      stack: observability
+      component: logging
+    namespace: monitoring
+    chart: grafana-community/loki
+    version: 13.6.2
+    values:
+      - ./observability/loki/values/loki.yaml.gotmpl

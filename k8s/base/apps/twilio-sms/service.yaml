@@ -1,0 +1,20 @@
+# ============================================================================
+# Service: Twilio SMS ClusterIP Service
+# Description: Exposes the Twilio SMS gateway inside the development namespace.
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: twilio-sms
+  namespace: development
+  labels:
+    app.kubernetes.io/name: twilio-sms
+    app.kubernetes.io/part-of: springservice
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: twilio-sms
+  ports:
+    - name: http
+      port: 8444
+      targetPort: http

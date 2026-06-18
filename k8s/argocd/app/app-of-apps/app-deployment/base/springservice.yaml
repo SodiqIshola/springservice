@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: springservice-base
+  namespace: argocd
+spec:
+  project: springservice-base # project-placeholder      # Targeted by patch to become 'springservice-dev'
+  source:
+    repoURL: https://github.com/SodiqIshola/springservice.git
+    targetRevision: HEAD
+    path: k8s/overlays/base  # Placeholder, will be patched
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: development  # Placeholder
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

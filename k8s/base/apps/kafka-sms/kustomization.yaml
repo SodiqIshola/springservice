@@ -1,0 +1,9 @@
+# ============================================================================
+# Service: Kafka SMS Kustomization
+# Description: Groups Kafka SMS service manifests for base environment
+#              deployment.
+# ============================================================================
+resources:
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml

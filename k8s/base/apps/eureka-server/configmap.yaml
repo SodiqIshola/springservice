@@ -1,0 +1,14 @@
+# ============================================================================
+# Service: Eureka Server Runtime Configuration
+# Description: Defines JVM memory settings for the Eureka discovery server.
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: eureka-server-config
+  namespace: development
+  labels:
+    app.kubernetes.io/name: eureka-server
+    app.kubernetes.io/part-of: springservice
+data:
+  JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=55.0 -XX:InitialRAMPercentage=20.0 -XX:+ExitOnOutOfMemoryError"

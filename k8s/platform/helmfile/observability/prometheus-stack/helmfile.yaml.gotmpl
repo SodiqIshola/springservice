@@ -1,0 +1,47 @@
+environments:
+  dev:
+    values:
+      - ./environments/dev/global.yaml
+      - ./observability/prometheus-stack/values/dev/prometheus-stack.yaml.gotmpl
+  prod:
+    values:
+      - ./environments/prod/global.yaml
+      - ./observability/prometheus-stack/values/prod/prometheus-stack.yaml.gotmpl
+
+---
+repositories:
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
+
+helmDefaults:
+  createNamespace: true
+  wait: true
+  timeout: 600
+  cleanupOnFail: true
+
+releases:
+  - name: kube-prometheus-stack
+    namespace: monitoring
+    chart: prometheus-community/kube-prometheus-stack
+    version: 84.5.0
+    labels:
+      stack: observability
+      component: metrics
+    values:
+      - ./observability/prometheus-stack/values/prometheus-stack.yaml.gotmpl
+
+
+
+
+
+
+
+
+
+
+
+
+#  helm diff upgrade kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+#  --version 84.5.0 \
+#  -f values/promtail.yaml \
+#  --namespace monitoring

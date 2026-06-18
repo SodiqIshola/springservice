@@ -1,0 +1,22 @@
+# 1. Pull in the same generic templates used for Dev
+resources:
+  - ../../base
+
+patches:
+  # The AppProject (Security and Scope) for Prod
+  - patch: |-
+      - op: replace
+        path: /metadata/name
+        value: springservice-project-prod
+      - op: replace
+        path: /spec/description
+        value: "Springservice production application and platform resources"
+      # ADDS the production namespace to the existing base list (monitoring, argocd)
+      - op: add
+        path: /spec/destinations/0
+        value:
+          namespace: production
+          server: https://kubernetes.default.svc
+    target:
+      kind: AppProject
+      name: springservice-project-base

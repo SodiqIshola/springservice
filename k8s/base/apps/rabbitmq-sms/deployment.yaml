@@ -1,0 +1,56 @@
+# ============================================================================
+# Service: RabbitMQ SMS Deployment
+# Description: Runs the SMS worker that consumes RabbitMQ messages and handles
+#              SMS processing.
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq-sms
+  namespace: development
+  labels:
+    app.kubernetes.io/name: rabbitmq-sms
+    app.kubernetes.io/part-of: springservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rabbitmq-sms
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: rabbitmq-sms
+        app.kubernetes.io/part-of: springservice
+    spec:
+      containers:
+        - name: rabbitmq-sms
+          image: sunky24/rabbitmqsms-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8445
+          envFrom:
+            - configMapRef:
+                name: rabbitmq-sms-config
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
+          startupProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            failureThreshold: 18
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 20
+            failureThreshold: 6

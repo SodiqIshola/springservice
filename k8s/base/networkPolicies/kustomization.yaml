@@ -1,0 +1,7 @@
+# ============================================================================
+# Service: Network Policies Kustomization
+# Description: Groups all network policy definitions for security and traffic control.
+# ============================================================================
+resources:
+  - dev
+  - prod

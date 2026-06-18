@@ -1,0 +1,23 @@
+# ============================================================================
+# Service: Customer Runtime Configuration
+# Description: Provides database, messaging, discovery, telemetry, and JVM
+#              settings for the customer microservice.
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: customer-config
+  namespace: development
+  labels:
+    app.kubernetes.io/name: customer
+    app.kubernetes.io/part-of: springservice
+data:
+  EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/customer"
+  MANAGEMENT_OTLP_TRACING_ENDPOINT: "http://otel-collector:4317"
+  MANAGEMENT_OTLP_TRACING_TRANSPORT: "grpc"
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  SPRING_RABBITMQ_ADDRESSES: "rabbitmq:5672"
+  LOKI_URL: "http://loki:3100/loki/api/v1/push"
+  OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=development,service.name=customer,service.version=1.0.0"
+  JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=60.0 -XX:InitialRAMPercentage=25.0 -XX:+ExitOnOutOfMemoryError"

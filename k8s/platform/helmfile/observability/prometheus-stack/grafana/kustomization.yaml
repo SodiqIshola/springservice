@@ -1,0 +1,56 @@
+namespace: monitoring
+
+resources:
+  - networkpolicy-grafana.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: grafana-datasource-prometheus
+    files:
+      - datasources/prometheus.yaml
+    options:
+      labels:
+        grafana_datasource: "1"
+  - name: grafana-datasource-loki
+    files:
+      - datasources/loki.yaml
+    options:
+      labels:
+        grafana_datasource: "1"
+  - name: grafana-datasource-tempo
+    files:
+      - datasources/tempo.yaml
+    options:
+      labels:
+        grafana_datasource: "1"
+  - name: grafana-dashboard-loki
+    files:
+      - dashboards/Loki/loki-logs-100.json
+      - dashboards/Loki/loki-logs.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Loki
+  - name: grafana-dashboard-prometheus
+    files:
+      - dashboards/Prometheus/container-monitor.json
+      - dashboards/Prometheus/node-exporter.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Prometheus
+  - name: grafana-dashboard-tempo-metrics-generator
+    files:
+      - dashboards/Tempo/otel-apm.json
+      - dashboards/Tempo/red-metrics.json
+      - dashboards/Tempo/span-metrics.json
+      - dashboards/Tempo/tempo-traces.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Tempo

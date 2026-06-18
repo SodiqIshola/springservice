@@ -1,0 +1,12 @@
+# ============================================================================
+# Service: Spring Application Kustomization
+# Description: Groups all Spring Boot application workloads that make up the
+#              microservice layer.
+# ============================================================================
+resources:
+  - eureka-server
+  - customer
+  - fraud
+  - rabbitmq-sms
+  - kafka-sms
+  - twilio-sms

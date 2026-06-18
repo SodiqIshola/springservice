@@ -1,0 +1,21 @@
+# ============================================================================
+# Service: Kafka UI ClusterIP Service
+# Description: Exposes the Kafka UI web application inside the development
+#              namespace.
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-ui
+  namespace: development
+  labels:
+    app.kubernetes.io/name: kafka-ui
+    app.kubernetes.io/part-of: springservice
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: kafka-ui
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

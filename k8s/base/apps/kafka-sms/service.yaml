@@ -1,0 +1,20 @@
+# ============================================================================
+# Service: Kafka SMS ClusterIP Service
+# Description: Exposes the Kafka SMS worker inside the development namespace.
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-sms
+  namespace: development
+  labels:
+    app.kubernetes.io/name: kafka-sms
+    app.kubernetes.io/part-of: springservice
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: kafka-sms
+  ports:
+    - name: http
+      port: 8498
+      targetPort: http

@@ -1,0 +1,40 @@
+
+# Pull in the generic templates from the base directory
+resources:
+  - ../../base
+
+patches:
+  # Patch 1: The Root (Parent) Application
+  - patch: |-
+      - op: replace
+        path: /metadata/name
+        value: springservice-root-dev
+      - op: replace
+        path: /spec/project
+        value: springservice-project-dev
+      - op: replace
+        path: /spec/source/path
+        value: k8s/argocd/app-of-apps/overlays/dev
+    target:
+      kind: Application
+      name: springservice-root-base
+
+  # Patch 2: The actual Spring Service Application
+  - patch: |-
+      - op: replace
+        path: /metadata/name
+        value: springservice-dev
+      - op: replace
+        path: /spec/project
+        value: springservice-project-dev
+      - op: replace
+        path: /spec/source/path
+        value: k8s/overlays/dev
+      - op: replace
+        path: /spec/destination/namespace
+        value: development
+    target:
+      kind: Application
+      name: springservice-base
+
+

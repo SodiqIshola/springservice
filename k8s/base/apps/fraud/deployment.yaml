@@ -1,0 +1,56 @@
+# ============================================================================
+# Service: Fraud Deployment
+# Description: Runs the fraud microservice with resource limits based on the
+#              Docker Compose memory profile.
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fraud
+  namespace: development
+  labels:
+    app.kubernetes.io/name: fraud
+    app.kubernetes.io/part-of: springservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fraud
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fraud
+        app.kubernetes.io/part-of: springservice
+    spec:
+      containers:
+        - name: fraud
+          image: sunky24/fraud-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8081
+          envFrom:
+            - configMapRef:
+                name: fraud-config
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 750m
+              memory: 512Mi
+          startupProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            failureThreshold: 18
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 20
+            failureThreshold: 6

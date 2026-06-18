@@ -1,0 +1,15 @@
+# ============================================================================
+# Service: RabbitMQ Runtime Configuration
+# Description: Applies the memory watermark setting from Docker Compose to keep
+#              RabbitMQ stable in a constrained local cluster.
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-config
+  namespace: development
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/part-of: springservice
+data:
+  RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbit vm_memory_high_watermark absolute 256MB"

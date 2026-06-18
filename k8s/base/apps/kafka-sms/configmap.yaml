@@ -1,0 +1,17 @@
+# ============================================================================
+# Service: Kafka SMS Runtime Configuration
+# Description: Provides Kafka, discovery, and JVM settings for the Kafka SMS
+#              worker service.
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-sms-config
+  namespace: development
+  labels:
+    app.kubernetes.io/name: kafka-sms
+    app.kubernetes.io/part-of: springservice
+data:
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
+  JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=55.0 -XX:InitialRAMPercentage=20.0 -XX:+ExitOnOutOfMemoryError"

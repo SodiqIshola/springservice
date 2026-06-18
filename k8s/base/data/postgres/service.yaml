@@ -1,0 +1,21 @@
+# ============================================================================
+# Service: PostgreSQL ClusterIP Service
+# Description: Exposes PostgreSQL inside the development namespace for
+#              Spring services using the postgres DNS name.
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: development
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: springservice
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres

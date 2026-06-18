@@ -1,0 +1,17 @@
+# ============================================================================
+# Service: PostgreSQL Database Initialization
+# Description: Creates the application databases required by the customer and
+#              fraud services during the first PostgreSQL startup.
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-initdb
+  namespace: development
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: springservice
+data:
+  init-db.sql: |
+    CREATE DATABASE customer;
+    CREATE DATABASE fraud;

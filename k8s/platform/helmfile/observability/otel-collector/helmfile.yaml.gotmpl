@@ -1,0 +1,31 @@
+environments:
+  dev:
+    values:
+      - ./environments/dev/global.yaml
+      - ./observability/otel-collector/values/dev/otel.yaml
+  prod:
+    values:
+      - ./environments/prod/global.yaml
+      - ./observability/otel-collector/values/prod/otel.yaml
+
+---
+repositories:
+  - name: open-telemetry
+    url: https://open-telemetry.github.io/opentelemetry-helm-charts
+
+helmDefaults:
+  createNamespace: true
+  wait: true
+  timeout: 600
+  cleanupOnFail: true
+
+releases:
+  - name: otel-collector
+    labels:
+      stack: observability
+      component: telemetry
+    namespace: monitoring
+    chart: open-telemetry/opentelemetry-collector
+    version: 0.153.0
+    values:
+      - ./observability/otel-collector/values/otel.yaml.gotmpl

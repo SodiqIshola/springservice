@@ -1,0 +1,56 @@
+# ============================================================================
+# Service: Eureka Server Deployment
+# Description: Runs the service registry used by the Spring microservices for
+#              discovery inside the development namespace.
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eureka-server
+  namespace: development
+  labels:
+    app.kubernetes.io/name: eureka-server
+    app.kubernetes.io/part-of: springservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: eureka-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: eureka-server
+        app.kubernetes.io/part-of: springservice
+    spec:
+      containers:
+        - name: eureka-server
+          image: sunky24/eureka-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8761
+          envFrom:
+            - configMapRef:
+                name: eureka-server-config
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
+          startupProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            failureThreshold: 18
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 20
+            failureThreshold: 6

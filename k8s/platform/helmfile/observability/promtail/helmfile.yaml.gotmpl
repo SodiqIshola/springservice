@@ -1,0 +1,36 @@
+environments:
+  dev:
+    values:
+      - ./environments/dev/global.yaml
+      - ./observability/promtail/values/dev/promtail.yaml
+  prod:
+    values:
+      - ./environments/prod/global.yaml
+      - ./observability/promtail/values/prod/promtail.yaml
+
+---
+repositories:
+  - name: grafana
+    url: https://grafana.github.io/helm-charts
+
+helmDefaults:
+  createNamespace: true
+  wait: true
+  timeout: 600
+  cleanupOnFail: true
+
+releases:
+  - name: promtail
+    namespace: monitoring
+    labels:
+      stack: observability
+      component: logging
+    chart: grafana/promtail
+    version: 6.17.1
+    values:
+      - ./observability/promtail/values/promtail.yaml.gotmpl
+
+
+
+
+

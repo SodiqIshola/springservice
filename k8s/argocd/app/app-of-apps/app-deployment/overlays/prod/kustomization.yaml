@@ -1,0 +1,37 @@
+# 1. Pull in the same generic templates used for Dev
+resources:
+  - ../../base
+
+patches:
+  # Patch 1: The Root (Parent) Application for Prod
+  - patch: |-
+      - op: replace
+        path: /metadata/name
+        value: springservice-root-prod
+      - op: replace
+        path: /spec/project
+        value: springservice-project-prod
+      - op: replace
+        path: /spec/source/path
+        value: k8s/argocd/app-of-apps/overlays/prod  # Points to this prod folder
+    target:
+      kind: Application
+      name: springservice-root-base
+
+  # Patch 2: The actual Spring Service Application for Prod
+  - patch: |-
+      - op: replace
+        path: /metadata/name
+        value: springservice-prod
+      - op: replace
+        path: /spec/project
+        value: springservice-project-prod
+      - op: replace
+        path: /spec/source/path
+        value: k8s/overlays/prod               # Points to prod manifests (usually 'main' branch)
+      - op: replace
+        path: /spec/destination/namespace
+        value: production                      # Deploys into the production namespace
+    target:
+      kind: Application
+      name: springservice-base

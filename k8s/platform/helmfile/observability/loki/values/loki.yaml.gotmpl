@@ -1,0 +1,156 @@
+# =============================================================================
+# DEPLOYMENT MODE
+# =============================================================================
+# Force the chart to deploy as a Single Binary Monolithic process
+deploymentMode: Monolithic
+
+# -- Labels to be added to resources
+commonLabels: {{ .Values.global.environment }}
+
+# =============================================================================
+# ACCESS CONTROL
+# =============================================================================
+serviceAccount:
+  create: true
+  name: loki
+
+rbac:
+  create: true
+
+# =============================================================================
+# LOKI ENGINE CONFIGURATION
+# =============================================================================
+loki:
+  auth_enabled: false
+
+  # Modern community charts accept direct map assignments for structured configs
+  structuredConfig:
+    common:
+      path_prefix: /var/loki
+      replication_factor: 1
+
+    limits_config:
+      retention_period: {{ .Values.loki.retention | default "7d" }}
+      reject_old_samples: true
+      reject_old_samples_max_age: 168h
+      allow_structured_metadata: true # Active in Loki 3.x+ schemas
+
+    # --- COMPACTOR & RETENTION ---
+    compactor:
+      working_directory: /loki/retention
+      compaction_interval: 10m
+      retention_enabled: true
+      delete_request_store: filesystem
+      retention_delete_delay: 2h
+      retention_delete_worker_count: 150
+
+    # --- QUERIER ---
+    querier:
+      max_concurrent: 10
+
+  # --- SCHEMA (CRITICAL CHANGE) ---
+  schemaConfig:
+    configs:
+      - from: "2024-01-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+
+  # --- STORAGE & REPLICATION ---
+  storage:
+    type: filesystem
+    filesystem:
+      chunks_directory: /var/loki/chunks
+      rules_directory: /var/loki/rules
+
+# =============================================================================
+# MONOLITHIC / SINGLE BINARY TARGET PODS
+# =============================================================================
+# CRITICAL: In 13.x, singleBinary is replaced entirely by the 'backend' configuration block
+backend:
+  replicas: 1
+
+  # --- HEALTH PROBES ---
+  startupProbe:
+    httpGet:
+      path: /ready
+      port: http-metrics
+    initialDelaySeconds: 30
+    failureThreshold: 20
+    periodSeconds: 10
+
+  livenessProbe:
+    httpGet:
+      path: /ready
+      port: http-metrics
+    initialDelaySeconds: 60
+
+  readinessProbe:
+    httpGet:
+      path: /ready
+      port: http-metrics
+    initialDelaySeconds: 30
+
+  # --- PERSISTENCE ---
+  persistence:
+    enabled: true
+    size: {{ .Values.loki.storageSize | default "1Gi" }}
+    storageClass: {{ .Values.global.storageClass }}
+
+  # --- RESOURCES ---
+  resources:
+    requests:
+      cpu: {{ .Values.global.cpuRequest }}
+      memory: {{ .Values.global.memoryRequest }}
+    limits:
+      cpu: {{ .Values.global.cpuLimit }}
+      memory: {{ .Values.global.memoryLimit }}
+
+# =============================================================================
+# MONITORING & METRICS (kube-prometheus-stack integration)
+# =============================================================================
+monitoring:
+  dashboards:
+    enabled: true       # Injects Loki dashboards automatically into Grafana
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    labels:
+      # Labels MUST match your kube-prometheus-stack's serviceMonitorSelector
+      release: kube-prometheus-stack
+  selfMonitoring:
+    enabled: false      # Set to false if you use Promtail or Alloysteering instead
+
+# =============================================================================
+# GATEWAY (NGINX PROXY)
+# =============================================================================
+gateway:
+  enabled: true
+
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
+
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    annotations:
+      kubernetes.io/ingress.class: traefik
+      traefik.ingress.kubernetes.io/router.entrypoints: web
+    hosts:
+      - host: {{ .Values.loki.host }}
+        paths:
+          - path: /
+            pathType: Prefix
+
+# =============================================================================
+# DISABLED COMPONENTS
+# =============================================================================
+lokiCanary:
+  enabled: false
+test:
+  enabled: false

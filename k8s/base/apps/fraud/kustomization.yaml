@@ -1,0 +1,8 @@
+# ============================================================================
+# Service: Fraud Kustomization
+# Description: Groups fraud service manifests for base environment deployment.
+# ============================================================================
+resources:
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml

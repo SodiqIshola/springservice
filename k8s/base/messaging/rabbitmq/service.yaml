@@ -1,0 +1,24 @@
+# ============================================================================
+# Service: RabbitMQ ClusterIP Service
+# Description: Exposes AMQP and management ports inside the development
+#              namespace for Spring services and admin access.
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: development
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/part-of: springservice
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: rabbitmq
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: amqp
+    - name: management
+      port: 15672
+      targetPort: management

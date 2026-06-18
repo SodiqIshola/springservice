@@ -1,0 +1,22 @@
+# ============================================================================
+# Platform Helmfile Entrypoint
+# Description: Applies platform services such as observability for the selected
+#              environment.
+# ============================================================================
+environments:
+  dev:
+    values:
+      - ./environments/dev/global.yaml
+  prod:
+    values:
+      - ./environments/prod/global.yaml
+
+---
+missingFileHandler: Error
+
+bases:
+  - ./observability/prometheus-stack/helmfile.yaml.gotmpl
+  - ./observability/loki/helmfile.yaml.gotmpl
+  - ./observability/tempo/helmfile.yaml.gotmpl
+  - ./observability/otel-collector/helmfile.yaml.gotmpl
+  - ./observability/promtail/helmfile.yaml.gotmpl

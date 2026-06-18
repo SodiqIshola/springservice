@@ -1,0 +1,17 @@
+# ============================================================================
+# Service: RabbitMQ SMS Runtime Configuration
+# Description: Provides RabbitMQ, discovery, and JVM settings for the RabbitMQ
+#              SMS worker service.
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-sms-config
+  namespace: development
+  labels:
+    app.kubernetes.io/name: rabbitmq-sms
+    app.kubernetes.io/part-of: springservice
+data:
+  SPRING_RABBITMQ_ADDRESSES: "rabbitmq:5672"
+  EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
+  JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=55.0 -XX:InitialRAMPercentage=20.0 -XX:+ExitOnOutOfMemoryError"

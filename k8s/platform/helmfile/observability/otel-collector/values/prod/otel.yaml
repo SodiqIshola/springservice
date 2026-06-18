@@ -1,0 +1,2 @@
+otel-collector:
+  host: otel-local.com

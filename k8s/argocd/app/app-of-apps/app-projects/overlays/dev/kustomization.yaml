@@ -1,0 +1,22 @@
+
+# Pull in the generic templates from the base directory
+resources:
+  - ../../base
+
+patches:
+  # The AppProject (Security and Scope)
+  - patch: |-
+      - op: replace
+        path: /metadata/name
+        value: springservice-project-dev
+      - op: replace
+        path: /spec/description
+        value: "Springservice development application and platform resources"
+      - op: add
+        path: /spec/destinations/0
+        value:
+          namespace: development
+          server: https://kubernetes.default.svc
+    target:
+      kind: AppProject
+      name: springservice-project-base

@@ -1,0 +1,16 @@
+# ============================================================================
+# Service: pgAdmin Runtime Configuration
+# Description: Configures pgAdmin for single-user development mode based on
+#              the Docker Compose environment values.
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pgadmin-config
+  namespace: development
+  labels:
+    app.kubernetes.io/name: pgadmin
+    app.kubernetes.io/part-of: springservice
+data:
+  PGADMIN_CONFIG_SERVER_MODE: "False"
+  PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"

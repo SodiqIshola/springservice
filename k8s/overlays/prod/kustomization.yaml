@@ -1,0 +1,33 @@
+# ============================================================================
+# Overlay: Production
+# Description: Renders the base stack for the production namespace, applies
+#              production replica counts, and removes development-only policy.
+# ============================================================================
+resources:
+  - ../../base
+  - ../../base/networkPolicies/prod
+
+commonAnnotations:
+  app.kubernetes.io/environment: prod
+
+patches:
+  - target:
+      kind: ConfigMap
+    path: patches/namespace-production.yaml
+  - target:
+      kind: Secret
+    path: patches/namespace-production.yaml
+  - target:
+      kind: Service
+    path: patches/namespace-production.yaml
+  - target:
+      kind: Deployment
+    path: patches/namespace-production.yaml
+  - target:
+      kind: StatefulSet
+    path: patches/namespace-production.yaml
+  - target:
+      kind: PersistentVolumeClaim
+    path: patches/namespace-production.yaml
+  - path: patches/prod-configmaps.yaml
+  - path: patches/prod-replicas.yaml

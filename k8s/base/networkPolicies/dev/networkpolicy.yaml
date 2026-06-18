@@ -1,0 +1,54 @@
+# ============================================================================
+# Service: Development Network Policies
+# Description: Denies unsolicited ingress to the development namespace while
+#              allowing same-namespace service traffic and monitoring scrapes.
+# ============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dev-default-deny-ingress
+  namespace: development
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dev-allow-same-namespace
+  namespace: development
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: {}
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dev-allow-monitoring-scrape
+  namespace: development
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              env: infra
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 8081
+        - protocol: TCP
+          port: 8761
+        - protocol: TCP
+          port: 8444
+        - protocol: TCP
+          port: 8445
+        - protocol: TCP
+          port: 8498

@@ -1,0 +1,10 @@
+# ============================================================================
+# Service: Messaging Layer Kustomization
+# Description: Groups RabbitMQ, ZooKeeper, Kafka, and Kafka UI manifests for
+#              the base Kubernetes environment.
+# ============================================================================
+resources:
+  - rabbitmq
+  - zookeeper
+  - kafka
+  - kafka-ui

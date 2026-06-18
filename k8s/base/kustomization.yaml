@@ -1,0 +1,10 @@
+# ============================================================================
+# Service: Base Kubernetes Kustomization
+# Description: Applies data services, messaging services, Spring application
+#              workloads, and network policies. Namespaces are deployed first
+#              from ../namespaces or by Argo CD sync waves.
+# ============================================================================
+resources:
+  - data
+  - messaging
+  - apps
