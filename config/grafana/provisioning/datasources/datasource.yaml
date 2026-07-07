@@ -1,0 +1,50 @@
+# ============================================================================
+# Service: Grafana Data Sources
+# Description: Unified configuration for Prometheus, Loki, and Tempo
+# ============================================================================
+apiVersion: 1
+
+datasources:
+  # Prometheus: Metrics storage and query engine
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      httpMethod: POST
+      exemplarTraceIdDestinations:
+        # Link metrics directly to Tempo traces
+        - datasourceUid: tempo
+          name: traceID
+
+  # Loki: Log aggregation system
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://loki:3100
+    editable: true
+    jsonData:
+      derivedFields:
+        # Extract TraceID from logs and link to Tempo
+        - datasourceUid: tempo
+          matcherRegex: "traceID=(\\w+)"
+          name: TraceID
+          url: "$${__value.raw}"
+
+  # Tempo: Distributed tracing backend
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: true
+    jsonData:
+      httpMethod: GET
+      serviceMap:
+        datasourceUid: 'prometheus'
+      nodeGraph:
+        enabled: true

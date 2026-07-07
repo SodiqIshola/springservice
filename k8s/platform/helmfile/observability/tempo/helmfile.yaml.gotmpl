@@ -1,0 +1,34 @@
+environments:
+  dev:
+    values:
+      - ./environments/dev/global.yaml
+      - ./observability/tempo/values/dev/tempo.yaml
+  prod:
+    values:
+      - ./environments/prod/global.yaml
+      - ./observability/tempo/values/prod/tempo.yaml
+
+---
+repositories:
+  - name: grafana-community
+    url: https://grafana-community.github.io/helm-charts
+
+helmDefaults:
+  createNamespace: true
+  wait: true
+  timeout: 600
+  cleanupOnFail: true
+
+releases:
+  - name: tempo
+    labels:
+      stack: observability
+      component: tracing
+    namespace: monitoring
+    chart: grafana-community/tempo
+    version: 2.0.0
+    values:
+      - ./observability/tempo/values/tempo.yaml.gotmpl
+
+
+

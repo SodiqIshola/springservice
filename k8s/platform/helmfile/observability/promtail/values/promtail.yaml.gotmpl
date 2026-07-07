@@ -1,0 +1,85 @@
+# =============================================================================
+# PROMTAIL - KUBERNETES MIGRATION
+# =============================================================================
+# RBAC & ServiceAccount
+# This creates the ClusterRole and ClusterRoleBinding needed to list pods
+rbac:
+  create: true
+serviceAccount:
+  create: true
+  name: promtail
+
+daemonset:
+  enabled: true
+
+# This block updates the raw promtail.yaml config
+config:
+  logLevel: info
+  serverPort: 9080
+
+  clients:
+    - url: http://loki-gateway.monitoring.svc.cluster.local
+
+  # K8s equivalent of your Docker pipeline and scraping
+  snippets:
+    pipelineStages:
+      - docker: {} # Parses the standard Docker/CRI-O container log wrapper
+      - json:
+          expressions:
+            level: level
+            traceId: trace_id
+            spanId: span_id
+      # Your regex for Trace IDs in logs
+      - regex:
+          expression: '\[(?P<traceId>[a-f0-9]*),\s*(?P<spanId>[a-f0-9]*)\]'
+      - labels:
+          level:
+          traceId:
+          spanId:
+
+    # K8s Service Discovery (replaces docker_sd_configs)
+    common:
+      - action: replace
+        source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+      - action: replace
+        source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - action: replace
+        source_labels: [__meta_kubernetes_container_name]
+        target_label: container
+
+# ------------------------
+# SECURITY & MOUNTS
+# ------------------------
+# K8s doesn't use the docker socket; it reads log files from the host
+extraVolumes:
+  - name: pods
+    hostPath:
+      path: /var/log/pods
+extraVolumeMounts:
+  - name: pods
+    mountPath: /var/log/pods
+    readOnly: true
+
+# Ensure we run as root to read the log files
+containerSecurityContext:
+  readOnlyRootFilesystem: true
+  runAsUser: 0
+  runAsGroup: 0
+
+# ------------------------
+# RESOURCES & MONITORING
+# ------------------------
+resources:
+  requests:
+    cpu: {{ .Values.global.cpuRequest }}
+    memory: {{ .Values.global.memoryRequest }}
+  limits:
+    cpu: {{ .Values.global.cpuLimit }}
+    memory: {{ .Values.global.memoryLimit }}
+
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: kube-prometheus-stack

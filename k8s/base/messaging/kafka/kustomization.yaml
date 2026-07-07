@@ -1,0 +1,8 @@
+# ============================================================================
+# Service: Kafka Kustomization
+# Description: Groups Kafka broker manifests for base environment deployment.
+# ============================================================================
+resources:
+  - configmap.yaml
+  - service.yaml
+  - statefulset.yaml

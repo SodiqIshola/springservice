@@ -1,0 +1,6 @@
+# ============================================================================
+# Service: Namespaces Kustomization
+# Description: Groups all namespace definitions for the Kubernetes environment.
+# ============================================================================
+resources:
+  - namespace.yaml

@@ -1,0 +1,10 @@
+# ============================================================================
+# Service: PostgreSQL Kustomization
+# Description: Groups PostgreSQL database manifests for base environment
+#              deployment.
+# ============================================================================
+resources:
+  - configmap-initdb.yaml
+  - secret.yaml
+  - service.yaml
+  - statefulset.yaml

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+<!-- Keep the default Spring boot patterns for Console -->
+<include resource="org/springframework/boot/logging/logback/defaults.xml" />
+
+<!-- Grab the application name from Spring properties -->
+<springProperty scope="context" name="appName" source="spring.application.name" defaultValue="unknown-service"/>
+
+<!-- CONSOLE: this for 'docker logs' -->
+<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+        <pattern>${LOGGING_PATTERN_CONSOLE:-${CONSOLE_LOG_PATTERN}}</pattern>
+    </encoder>
+</appender>
+
+<!-- LOKI: Optimized for Grafana -->
+<appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+    <http>
+        <url>${LOKI_URL:-http://localhost:3100/loki/api/v1/push}</url>
+    </http>
+    <format>
+        <label>
+            <pattern>app=${appName},host=${HOSTNAME}</pattern>
+        </label>
+        <message class="com.github.loki4j.logback.JsonLayout">
+            <messageLayout class="com.github.loki4j.logback.PatternLayout">
+                <pattern>l=%level t=%thread c=%logger{35} [traceId=%X{traceId:-}, spanId=%X{spanId:-}] | %msg %ex</pattern>
+            </messageLayout>
+        </message>
+    </format>
+</appender>
+
+<root level="INFO">
+    <appender-ref ref="CONSOLE" />
+    <appender-ref ref="LOKI" />
+</root>
+</configuration>

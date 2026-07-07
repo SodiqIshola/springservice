@@ -23,9 +23,9 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>17</maven.compiler.release>
-    <spring.boot.maven.plugin.version>3.3.2</spring.boot.maven.plugin.version>
-    <spring.boot.dependencies.version>3.3.2</spring.boot.dependencies.version>
-    <spring-cloud.version>2023.0.3</spring-cloud.version>
+    <spring.boot.maven.plugin.version>3.4.5</spring.boot.maven.plugin.version>
+    <spring.boot.dependencies.version>3.4.5</spring.boot.dependencies.version>
+    <spring-cloud.version>2024.0.1</spring-cloud.version>
   </properties>
 
   <dependencyManagement>
@@ -48,11 +48,12 @@
   </dependencyManagement>
 
   <dependencies>
+    <!-- TOOLS: Development utilities to reduce boilerplate and speed up coding -->
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
+      <optional>true</optional>
     </dependency>
-
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-devtools</artifactId>
@@ -60,10 +61,7 @@
       <optional>true</optional>
     </dependency>
 
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
-    </dependency>
+    <!-- OBSERVABILITY: Metrics collection and Prometheus integration -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
@@ -72,22 +70,27 @@
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-registry-prometheus</artifactId>
     </dependency>
+
+    <!-- TESTING: Frameworks for unit and integration testing -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>5.8.1</version>
       <scope>test</scope>
     </dependency>
-
-    <!-- Mockito for Mocking -->
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
       <version>4.2.0</version>
       <scope>test</scope>
     </dependency>
-
   </dependencies>
+
 
   <build>
     <pluginManagement>
@@ -105,7 +108,7 @@
               <path>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
-                <version>1.18.34</version>
+                <version>1.18.38</version>
               </path>
             </annotationProcessorPaths>
           </configuration>

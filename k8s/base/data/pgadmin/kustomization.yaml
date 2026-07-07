@@ -1,0 +1,10 @@
+# ============================================================================
+# Service: pgAdmin Kustomization
+# Description: Groups pgAdmin manifests for base environment deployment.
+# ============================================================================
+resources:
+  - configmap.yaml
+  - secret.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml

@@ -1,0 +1,9 @@
+global:
+  storageClass: "local-path"
+  environment: "prod"
+  domain: "prod.local.com"
+
+  cpuRequest: 100m
+  cpuLimit: 500m
+  memoryRequest: 256Mi
+  memoryLimit: 512Mi

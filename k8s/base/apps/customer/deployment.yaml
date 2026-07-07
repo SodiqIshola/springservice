@@ -1,0 +1,56 @@
+# ============================================================================
+# Service: Customer Deployment
+# Description: Runs the customer microservice with resource limits based on
+#              the Docker Compose memory profile.
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer
+  namespace: development
+  labels:
+    app.kubernetes.io/name: customer
+    app.kubernetes.io/part-of: springservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: customer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: customer
+        app.kubernetes.io/part-of: springservice
+    spec:
+      containers:
+        - name: customer
+          image: sunky24/customer-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: customer-config
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 750m
+              memory: 512Mi
+          startupProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            failureThreshold: 18
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 20
+            failureThreshold: 6

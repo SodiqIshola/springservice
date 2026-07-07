@@ -1,0 +1,22 @@
+# ============================================================================
+# Service: Fraud Runtime Configuration
+# Description: Provides database, discovery, telemetry, and JVM settings for
+#              the fraud microservice.
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fraud-config
+  namespace: development
+  labels:
+    app.kubernetes.io/name: fraud
+    app.kubernetes.io/part-of: springservice
+data:
+  EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/fraud"
+  OTEL_SDK_DISABLED: "false"
+  OTEL_LOGS_EXPORTER: "none"
+  OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+  OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=development,service.name=fraud,service.version=1.0.0"
+  JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=60.0 -XX:InitialRAMPercentage=25.0 -XX:+ExitOnOutOfMemoryError"

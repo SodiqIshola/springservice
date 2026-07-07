@@ -1,0 +1,64 @@
+# ===================================================================
+# Prometheus Global Config
+# ===================================================================
+global:
+  scrape_interval: 15s # How often to poll the services
+  evaluation_interval: 15s
+
+# ===================================================================
+# Scrape Configurations
+# ===================================================================
+scrape_configs:
+
+  # SELF: Monitor Prometheus performance
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'customer-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['customer:8080'] 
+
+  - job_name: 'fraud-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['fraud:8081'] 
+
+  - job_name: 'eureka-server'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['eureka-server:8761']
+
+  - job_name: 'rabbitmq-sms-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['rabbitmq-sms:8445']
+
+  - job_name: 'kafka-sms-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['kafka-sms:8498']
+
+  - job_name: 'twilio-sms-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['twilio-sms:8444']
+
+  # COLLECTOR: Monitor the OTel Collector's internal health
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets: ['otel-collector:8888']
+
+  # Host-level metrics (CPU, RAM, Disk)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # Container-level metrics (Filtering by container_name)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+
+

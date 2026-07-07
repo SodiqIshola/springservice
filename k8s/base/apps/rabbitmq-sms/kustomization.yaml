@@ -1,0 +1,9 @@
+# ============================================================================
+# Service: RabbitMQ SMS Kustomization
+# Description: Groups RabbitMQ SMS service manifests for base environment
+#              deployment.
+# ============================================================================
+resources:
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml

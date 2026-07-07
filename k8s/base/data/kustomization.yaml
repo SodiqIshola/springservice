@@ -1,0 +1,8 @@
+# ============================================================================
+# Service: Data Layer Kustomization
+# Description: Groups database and database administration manifests for the
+#              base Kubernetes environment.
+# ============================================================================
+resources:
+  - postgres
+  - pgadmin

@@ -1,0 +1,21 @@
+# ============================================================================
+# Service: Kafka Runtime Configuration
+# Description: Configures a single-node Kafka broker for internal cluster
+#              messaging using the Docker Compose settings.
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-config
+  namespace: development
+  labels:
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/part-of: springservice
+data:
+  KAFKA_BROKER_ID: "1"
+  KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+  KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+  KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT"
+  KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+  KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+  KAFKA_HEAP_OPTS: "-Xms256m -Xmx384m"

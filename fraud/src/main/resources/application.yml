@@ -1,23 +1,47 @@
+# ===================================================================
+# Server Configuration
+# ===================================================================
 server:
   port: 8081
+  # Clean shutdown for Docker/K8s
+  shutdown: graceful
 
+# ===================================================================
+# Eureka Discovery Client Settings
+# ===================================================================
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
+    # Performance optimization: Reduces log noise and speeds up startup
+    fetch-registry: true
+    register-with-eureka: true
+
+# ===================================================================
+# Spring Boot Configuration
+# ===================================================================
 spring:
   application:
     name: fraud
+
   datasource:
-    password: password
-    url: jdbc:postgresql://localhost:5432/fraud
-    username: dotmonsscode
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/customer}
+    username: ${SPRING_DATASOURCE_USERNAME:dotmonsscode}
+    password: ${SPRING_DATASOURCE_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+
+  
   jpa:
     hibernate:
       ddl-auto: update
+    show-sql: true
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-    show-sql: true
 
-  #actuator
+# ===================================================================
+# Management & Actuator Configuration
+# ===================================================================
 management:
   endpoints:
     web:
@@ -29,9 +53,38 @@ management:
   info:
     env:
       enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}-service
 
+# ===================================================================
+# OpenTelemetry SDK & OTLP Exporter Configuration
+# ===================================================================
+otel:
+  sdk:
+    disabled: false 
+  exporter:
+    otlp:
+      endpoint: http://localhost:4317
+      protocol: grpc
+
+
+  resource:
+    attributes:
+      service.name: ${spring.application.name}-service
+
+
+# Logging pattern to include trace and span IDs for better correlation in Grafana
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level [%thread] %logger{36} [%X{traceId:-}, %X{spanId:-}] - %msg%n"
+
+# ===================================================================
+# Project Info
+# ===================================================================
 info:
   app:
     name: Fraud
     description: To detect fraud
     version: 1.0.0
+

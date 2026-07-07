@@ -1,0 +1,4 @@
+loki:
+  storageSize: "2Gi"
+  retention: "10d"
+  host: loki-local.com

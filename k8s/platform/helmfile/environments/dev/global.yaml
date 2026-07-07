@@ -1,0 +1,13 @@
+global:
+  storageClass: "local-path"
+  environment: "dev"
+  domain: "dev.local.com"
+
+  cpuRequest: 100m
+  cpuLimit: 500m
+  memoryRequest: 128Mi
+  memoryLimit: 256Mi
+
+
+
+

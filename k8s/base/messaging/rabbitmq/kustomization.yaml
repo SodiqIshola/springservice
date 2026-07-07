@@ -1,0 +1,8 @@
+# ============================================================================
+# Service: RabbitMQ Kustomization
+# Description: Groups RabbitMQ messaging broker manifests for base deployment.
+# ============================================================================
+resources:
+  - configmap.yaml
+  - service.yaml
+  - statefulset.yaml

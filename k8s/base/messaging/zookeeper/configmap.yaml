@@ -1,0 +1,17 @@
+# ============================================================================
+# Service: ZooKeeper Runtime Configuration
+# Description: Configures ZooKeeper for the single-node Kafka development
+#              broker using the Docker Compose values.
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zookeeper-config
+  namespace: development
+  labels:
+    app.kubernetes.io/name: zookeeper
+    app.kubernetes.io/part-of: springservice
+data:
+  ZOOKEEPER_CLIENT_PORT: "2181"
+  ZOOKEEPER_TICK_TIME: "2000"
+  KAFKA_HEAP_OPTS: "-Xms128m -Xmx256m"

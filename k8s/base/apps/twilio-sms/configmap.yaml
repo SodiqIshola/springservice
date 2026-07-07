@@ -1,0 +1,18 @@
+# ============================================================================
+# Service: Twilio SMS Runtime Configuration
+# Description: Provides messaging, discovery, and JVM settings for the Twilio
+#              SMS gateway service.
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: twilio-sms-config
+  namespace: development
+  labels:
+    app.kubernetes.io/name: twilio-sms
+    app.kubernetes.io/part-of: springservice
+data:
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  SPRING_RABBITMQ_ADDRESSES: "rabbitmq:5672"
+  EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
+  JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=55.0 -XX:InitialRAMPercentage=20.0 -XX:+ExitOnOutOfMemoryError"

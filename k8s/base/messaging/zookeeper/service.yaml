@@ -1,0 +1,20 @@
+# ============================================================================
+# Service: ZooKeeper ClusterIP Service
+# Description: Exposes ZooKeeper on the zookeeper DNS name for the Kafka broker.
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper
+  namespace: development
+  labels:
+    app.kubernetes.io/name: zookeeper
+    app.kubernetes.io/part-of: springservice
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: zookeeper
+  ports:
+    - name: client
+      port: 2181
+      targetPort: client

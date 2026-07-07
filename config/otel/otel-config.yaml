@@ -1,0 +1,71 @@
+# ============================================================================
+# Config: OpenTelemetry Collector Configuration
+# Description: Receives traces/metrics and exports them to Tempo
+# ============================================================================
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133 # Health check for Docker/K8s
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317 # High-speed trace intake
+      http:
+        endpoint: 0.0.0.0:4318 # Standard HTTP trace intake
+
+exporters:
+  debug:
+    verbosity: basic # Simple console logging for debugging
+    sampling_initial: 5    # Log the first 5 batches every second
+    sampling_thereafter: 100 # Then only log 1 out of every 100 batches
+
+  otlp_grpc/tempo:
+    endpoint: "tempo:4317" # Send traces to Tempo container
+    tls:
+      insecure: true
+
+processors:
+  batch:
+    send_batch_size: 1000 # Efficiently group data before sending
+    timeout: 1s
+
+  # RESOURCE DETECTION: Enriches traces with system/env info (ideal for Kafka/Messaging)
+  resourcedetection:
+    detectors: [env, system]
+    timeout: 2s
+
+  # FILTER: Drops noisy health check and actuator spans
+  filter/health_checks:
+    error_mode: ignore
+    traces:
+      span:
+        - 'attributes["http.target"] == "/actuator/health"'
+        - 'attributes["http.target"] == "/health"'
+        - 'attributes["http.url"] != nil and IsMatch(attributes["http.url"], ".*/actuator/.*")'
+
+service:
+  extensions: [health_check]
+  telemetry:
+    metrics:
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: 8888 # Collector's own performance metrics
+
+  pipelines:
+    # TRACES: Filters noise, enriches data, and ships to Tempo and the console (debug)
+    traces:
+      receivers: [otlp]
+      processors: [filter/health_checks, resourcedetection, batch]
+      exporters: [otlp_grpc/tempo, debug]
+      
+    # METRICS: Groups incoming data and sends it to the console (debug)
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]
+

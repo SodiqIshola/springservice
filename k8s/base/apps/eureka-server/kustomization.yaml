@@ -1,0 +1,8 @@
+# ============================================================================
+# Service: Eureka Server Kustomization
+# Description: Groups Eureka server manifests for base environment deployment.
+# ============================================================================
+resources:
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml

@@ -1,0 +1,11 @@
+# ============================================================================
+# Overlay: Development
+# Description: Renders the base stack for the development namespace and includes
+#              development-only network isolation policies.
+# ============================================================================
+resources:
+  - ../../base
+  - ../../base/networkPolicies/dev
+
+commonAnnotations:
+  app.kubernetes.io/environment: dev

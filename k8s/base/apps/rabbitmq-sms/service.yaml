@@ -1,0 +1,21 @@
+# ============================================================================
+# Service: RabbitMQ SMS ClusterIP Service
+# Description: Exposes the RabbitMQ SMS worker inside the development
+#              namespace.
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-sms
+  namespace: development
+  labels:
+    app.kubernetes.io/name: rabbitmq-sms
+    app.kubernetes.io/part-of: springservice
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: rabbitmq-sms
+  ports:
+    - name: http
+      port: 8445
+      targetPort: http

@@ -1,0 +1,11 @@
+prometheus:
+  storageSize: "2Gi"
+  retention: "10d"
+  host: prometheus-dev-local.com
+
+grafana:
+  host: grafana-dev-local.com
+  storageSize: "2Gi"
+  retention: "10d"
+  adminUser: {{ env "GRAFANA_ADMIN_USER" | default "admin" }}
+  adminPassword: {{ env "GRAFANA_ADMIN_PASSWORD" | default "admin" }}

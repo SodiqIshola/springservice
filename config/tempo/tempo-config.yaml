@@ -1,0 +1,69 @@
+# ============================================================================
+# Config: Grafana Tempo Configuration
+# Description: Trace storage and automatic metrics generation from spans
+# ============================================================================
+
+# SERVER: Defines the internal port for API and health checks
+server:
+  http_listen_port: 3200
+
+# DISTRIBUTOR: The intake layer that listens for OTLP data from the Collector
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: "0.0.0.0:4317"
+        http:
+          endpoint: "0.0.0.0:4318"
+
+# INGESTER: Manages traces in memory before flushing to disk
+ingester:
+  max_block_duration: 5m
+
+# STORAGE: Defines the database backend and file format
+storage:
+  trace:
+    backend: local
+    local:
+      path: /var/tempo/traces
+    wal:
+      path: /var/tempo/wal  # Write-Ahead Log: prevents data loss if Tempo restarts
+    block:
+      # vParquet4 is the modern standard for high-performance trace searching
+      version: vParquet4
+
+# QUERIER: Handles trace lookups from Grafana
+querier:
+  search:
+
+# COMPACTOR: Merges small trace files and enforces retention
+compactor:
+  compaction:
+    block_retention: 48h
+
+# METRICS GENERATOR: Analyzes traces to automatically create Prometheus metrics
+metrics_generator:
+  registry:
+    external_labels:
+      source: tempo
+
+  storage:
+    path: /var/tempo/generator/wal
+    remote_write:
+      - url: http://prometheus:9090/api/v1/write
+        send_exemplars: true
+
+  processor:
+    service_graphs:
+      max_items: 10000
+    span_metrics:
+
+# OVERRIDES: Global settings for all ingested data
+overrides:
+  defaults:
+    metrics_generator:
+      processors:
+        - service-graphs
+        - span-metrics
+

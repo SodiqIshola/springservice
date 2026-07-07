@@ -1,5 +1,293 @@
+# ============================================================================
+# Service: Docker Resource Templates (YAML Anchors)
+# Description: Standardized memory limits and reservations for Java and
+#              Infrastructure containers to ensure stability and prevent OOMKill.
+# ============================================================================
+x-java-small-memory: &java-small-memory
+  deploy:
+    resources:
+      limits:
+        memory: 384M
+      reservations:
+        memory: 192M
+
+x-java-medium-memory: &java-medium-memory
+  deploy:
+    resources:
+      limits:
+        memory: 512M
+      reservations:
+        memory: 256M
+
+x-infra-tiny-memory: &infra-tiny-memory
+  deploy:
+    resources:
+      limits:
+        memory: 128M
+      reservations:
+        memory: 64M
+
+x-infra-small-memory: &infra-small-memory
+  deploy:
+    resources:
+      limits:
+        memory: 256M
+      reservations:
+        memory: 128M
+
+x-infra-medium-memory: &infra-medium-memory
+  deploy:
+    resources:
+      limits:
+        memory: 512M
+      reservations:
+        memory: 256M
+
+x-infra-large-memory: &infra-large-memory
+  deploy:
+    resources:
+      limits:
+        memory: 768M
+      reservations:
+        memory: 384M
+
 services:
+  # ============================================================================
+  # Service: Eureka Discovery Server
+  # Description: Service Registry for microservices lookup and registration
+  # ============================================================================
+  eureka-server:
+    <<: *java-small-memory
+    image: sunky24/eureka-server:latest
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - discovery-net
+      - monitoring-net
+    environment:
+      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=55.0 -XX:InitialRAMPercentage=20.0 -XX:+ExitOnOutOfMemoryError
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8761/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 90s
+
+  # ============================================================================
+  # Service: OpenTelemetry Collector
+  # Description: Receives, processes, and exports telemetry data (metrics/traces)
+  # ============================================================================
+  otel-collector:
+    <<: *infra-small-memory
+    image: otel/opentelemetry-collector-contrib:0.151.0
+    container_name: otel-collector
+    command: ["--config=/etc/otel-config.yaml"]
+    privileged: true # Required for certain resource detectors (e.g., system)
+    volumes:
+      - ./config/otel/otel-config.yaml:/etc/otel-config.yaml:ro
+      - /proc:/hostfs/proc:ro
+      - /sys:/hostfs/sys:ro
+      - /:/rootfs:ro
+    environment:
+      - HOST_PROC=/hostfs/proc
+      - HOST_SYS=/hostfs/sys
+      - HOST_ROOT=/rootfs
+    ports:
+      - "4318:4318"   # OTLP HTTP receiver
+      - "4317:4317"   # OTLP gRPC receiver
+      - "13133:13133" # Health Check extension
+      - "8888:8888"   # Prometheus metrics exporter (Collector's own metrics)
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 90s
+    restart: unless-stopped
+    networks:
+      - monitoring-net
+    depends_on:
+      tempo:
+        condition: service_started
+
+  
+  # ============================================================================
+  # Service: Grafana Loki
+  # Description: Log aggregation system (the "Prometheus for logs")
+  # ============================================================================
+  loki:
+    <<: *infra-small-memory
+    image: grafana/loki:3.7.1  
+    container_name: loki
+    volumes:
+      - loki:/loki
+      - ./config/loki/loki-config.yaml:/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"   # HTTP API and web UI
+    restart: unless-stopped
+    networks:
+      - monitoring-net
+
+
+  # ============================================================================
+  # Service: Prometheus Node Exporter
+  # Description: Collects hardware and OS metrics from the host machine
+  # ============================================================================
+  node-exporter:
+    <<: *infra-tiny-memory
+    image: prom/node-exporter:v1.11.1
+    container_name: node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command: [ '--path.procfs=/host/proc', '--path.rootfs=/rootfs', '--path.sysfs=/host/sys', '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)' ]
+    networks: [monitoring-net]
+
+  # ============================================================================
+  # Service: cAdvisor
+  # Description: Analyzes and exposes resource usage and performance data from running containers
+  # ============================================================================
+  cadvisor:
+    <<: *infra-small-memory
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    restart: unless-stopped
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    devices:
+      - /dev/kmsg
+    networks:
+      - monitoring-net
+    ports:
+      - "8055:8080" # Expose cAdvisor's web UI and metrics endpoint
+
+  # ============================================================================
+  # Service: Grafana Tempo
+  # Description: High-scale distributed tracing backend
+  # ============================================================================
+  tempo:
+    <<: *infra-small-memory
+    image: grafana/tempo:2.10.5
+    container_name: tempo
+    command: [ "-config.file=/etc/promtail.yaml" ]
+    ports:
+      - "3200:3200"   # HTTP API, web UI, and health check
+      - "4320:4317"   # OTLP gRPC receiver (mapped to avoid conflict with OTel Collector)
+    volumes:
+      - ./config/tempo/tempo-config.yaml:/etc/promtail.yaml:ro
+      - tempo:/var/tempo
+    networks:
+      - monitoring-net
+    restart: unless-stopped
+
+
+  # ============================================================================
+  # Service: Customer Microservice
+  # Description: Handles customer profiles; interacts with Postgres and Eureka
+  # ============================================================================
+  customer:
+    <<: *java-medium-memory
+    image: sunky24/customer-service:latest
+    container_name: customer
+    ports:
+      - "8080:8080"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/customer
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4317
+      - MANAGEMENT_OTLP_TRACING_TRANSPORT=grpc
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SPRING_RABBITMQ_ADDRESSES=rabbitmq:5672
+      - LOKI_URL=http://loki:3100/loki/api/v1/push
+      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=60.0 -XX:InitialRAMPercentage=25.0 -XX:+ExitOnOutOfMemoryError
+
+      # RESOURCE DETECTION VARIABLES:
+      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=development,service.name=customer,service.version=1.0.0,host.name=$$HOSTNAME
+    depends_on:
+      eureka-server:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - discovery-net
+      - database-net
+      - messaging-net
+      - monitoring-net
+
+
+  # ============================================================================
+  # Service: Fraud Microservice
+  # Description: Checks for fraudulent activity; communicates via Eureka
+  # ============================================================================
+  fraud:
+    <<: *java-medium-memory
+    image: sunky24/fraud-service:latest
+    container_name: fraud
+    ports:
+      - "8081:8081"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/fraud
+
+      # OpenTelemetry Configuration
+      - OTEL_SDK_DISABLED=false
+      - OTEL_LOGS_EXPORTER=none
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=60.0 -XX:InitialRAMPercentage=25.0 -XX:+ExitOnOutOfMemoryError
+      # RESOURCE DETECTION VARIABLES:
+      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=development,service.name=fraud,service.version=1.0.0,host.name=$$HOSTNAME
+    depends_on:
+      eureka-server:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - discovery-net
+      - database-net
+      - messaging-net
+      - monitoring-net
+
+  # ============================================================================
+  # Service: Promtail
+  # Description: Log agent that pulls Docker container logs and pushes to Loki
+  # ============================================================================
+  promtail:
+    <<: *infra-small-memory
+    image: grafana/promtail:latest
+    container_name: promtail
+    ports:
+      - "9080:9080"
+    volumes:
+      # On Windows, this path allows Promtail to see Docker Desktop container logs
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./config/promtail/promtail-config.yaml:/etc/promtail/config.yml
+      # Required for Docker service discovery
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - monitoring-net
+    restart: unless-stopped
+
+  # ============================================================================
+  # Service: PostgresSQL Database
+  # Description: Primary relational database for the Customer service
+  # ============================================================================
   postgres:
+    <<: *infra-medium-memory
     container_name: postgres
     image: postgres:14-alpine
     environment:
@@ -8,89 +296,305 @@ services:
       POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
       - ~/apps/postgres:/var/lib/postgresql/data
+      - ./config/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     ports:
       - "5432:5432"
     networks:
-      - postgres
+      - database-net
     restart: no
+    healthcheck:
+      # pg_isready is the official tool to check if the DB is accepting connections
+      test: ["CMD-SHELL", "pg_isready -U dotmonsscode -d customer -h localhost -p 5432 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 180s
 
-#
-#  postgres-fraud:
-#    container_name: postgres-fraud
-#    image: postgres
-#    environment:
-#      POSTGRES_USER: dotmonsscode
-#      POSTGRES_PASSWORD: password
-#      PGDATA: /data/postgresfraud
-#      POSTGRES_HOST_AUTH_METHOD: trust
-#    volumes:
-#      - postgres:/data/postgresfraud
-#    ports:
-#      - "5430:5432"
-#    networks:
-#      - postgres
-#    restart: unless-stopped
-
-
+  # ============================================================================
+  # Service: pgAdmin 4
+  # Description: Web-based administration tool for PostgreSQL management
+  # ============================================================================
   pgadmin:
+    <<: *infra-small-memory
     container_name: pgadmin
     image: dpage/pgadmin4
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
       PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
     volumes:
       - pgadmin:/var/lib/pgadmin
     ports:
       - "5050:80"
     networks:
-      - postgres
+      - database-net
+      - database-ui-net
     restart: unless-stopped
-  zipkin:
-    image: openzipkin/zipkin
-    container_name: zipkin
-    ports:
-      - "9411:9411"
-    networks:
-      - spring
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+
+  # ============================================================================
+  # Service: RabbitMQ Broker
+  # Description: Message broker with Management UI for asynchronous communication
+  # ============================================================================
   rabbitmq:
+    <<: *infra-medium-memory
     image: rabbitmq:3.9.11-management-alpine
     container_name: rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
+    environment:
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbit vm_memory_high_watermark absolute 256MB"
     networks:
-      - spring
+      - messaging-net
+
+
+  # ============================================================================
+  # Service: Grafana
+  # Description: Analytics and monitoring platform for visualizing telemetry data
+  # ============================================================================
+  grafana:
+    <<: *infra-small-memory
+    image: grafana/grafana:11.5.2
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      loki:
+        condition: service_started
+      tempo:
+        condition: service_started
+      prometheus:
+        condition: service_healthy
+    networks:
+      - monitoring-net
+    restart: unless-stopped
+
+
+  # ============================================================================
+  # Service: SMS RabbitMQ Service
+  # Description: Background worker that listens to RabbitMQ and executes 
+  #              the physical SMS delivery via external APIs (Twilio).
+  # ============================================================================
+  rabbitmq-sms:
+    <<: *java-small-memory
+    image: sunky24/rabbitmqsms-service:latest
+    container_name: rabbitmq-sms
+    ports:
+      - "8445:8445" 
+    environment:
+      - SPRING_RABBITMQ_ADDRESSES=rabbitmq:5672
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=55.0 -XX:InitialRAMPercentage=20.0 -XX:+ExitOnOutOfMemoryError
+    depends_on:
+      eureka-server:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+    networks:
+      - messaging-net
+      - discovery-net
+      - monitoring-net
+    restart: unless-stopped
+
+
+  # ============================================================================
+  # Service: Zookeeper
+  # Description: Coordination service for managing Apache Kafka cluster state
+  # ============================================================================
   zookeeper:
+    <<: *infra-medium-memory
     image: confluentinc/cp-zookeeper:7.4.4
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+      KAFKA_HEAP_OPTS: "-Xms128m -Xmx256m"
     ports:
-      - 22181:2181
+      - "22181:2181"
+    networks:
+      - messaging-net
 
+
+  # ============================================================================
+  # Service: Kafka
+  # Description: Distributed streaming platform for building real-time data pipelines
+  # ============================================================================
   kafka:
+    <<: *infra-large-memory
     image: confluentinc/cp-kafka:7.4.4
+    container_name: kafka
     depends_on:
       - zookeeper
     ports:
-      - 29092:29092
+      - "29092:29092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      # internal: kafka:9092 (for microservices) | external: localhost:29092 (for host)
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx384m"
+    networks:
+      - messaging-net
 
+    
+  # ============================================================================
+  # Service: Kafka SMS Service
+  # Description: Background worker that consumes Kafka events to process SMS
+  # ============================================================================
+  kafka-sms:
+    <<: *java-small-memory
+    image: sunky24/kafkasms-service:latest
+    container_name: kafka-sms
+    environment:
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=55.0 -XX:InitialRAMPercentage=20.0 -XX:+ExitOnOutOfMemoryError
+    depends_on:
+      eureka-server:
+        condition: service_started
+      kafka:
+        condition: service_started
+    ports:
+      - "8498:8498"
+    networks:
+      - messaging-net
+      - discovery-net
+      - monitoring-net
+    restart: unless-stopped
+
+
+  # ============================================================================
+  # Service: Kafka UI
+  # Description: Web interface for monitoring and managing Kafka clusters
+  # ============================================================================
+  kafka-ui:
+    <<: *infra-medium-memory
+    image: ghcr.io/kafbat/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      DYNAMIC_CONFIG_ENABLED: 'true'
+      JAVA_OPTS: "-Xms64m -Xmx192m"
+    depends_on:
+      kafka:
+        condition: service_started
+      zookeeper:
+        condition: service_started
+    networks:
+      - messaging-net
+
+
+  # ============================================================================
+  # Service: Twilio SMS Service
+  # Description: Gateway that interacts with Twilio API to send physical SMS
+  # ============================================================================
+  twilio-sms:
+    <<: *java-small-memory
+    image: sunky24/twilosms-service:latest
+    container_name: twilio-sms
+    environment:
+      # Messaging: Connectivity for both Kafka and RabbitMQ
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SPRING_RABBITMQ_ADDRESSES=rabbitmq:5672
+      
+      # Discovery & Cloud API
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_FROM_NUMBER=${TWILIO_FROM_NUMBER}
+      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=55.0 -XX:InitialRAMPercentage=20.0 -XX:+ExitOnOutOfMemoryError
+
+    ports:
+      - "8444:8444" # Expose port 8444 to the host for API access
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+    networks:
+      - discovery-net
+      - messaging-net
+      - monitoring-net
+
+
+  # ============================================================================
+  # Service: Prometheus
+  # Description: Monitoring and alerting toolkit
+  # ============================================================================
+  prometheus:
+    <<: *infra-medium-memory
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/:/etc/prometheus/:ro
+      - prometheus:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yaml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=2d"
+      - "--storage.tsdb.retention.size=512MB"
+      - "--web.enable-remote-write-receiver"
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/console_templates'
+      - '--web.enable-lifecycle' # Allows reloading config without restarting
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
+    networks:
+      - monitoring-net
+
+
+# ===================================================================
+# Docker Network Configuration
+# ===================================================================
 networks:
-  postgres:
-    name: postgres
+  # Services: eureka-server
+  discovery-net:
     driver: bridge
-  spring:
-    name: spring
+
+  # Services: kafka, rabbitmq, zookeeper
+  messaging-net:
     driver: bridge
+
+  # Services: postgres, pgadmin
+  database-net:
+    driver: bridge
+    internal: true # Prevents external access to the database network, enhancing security
+  
+  # Services: pgadmin
+  database-ui-net:
+    driver: bridge
+    
+  # Services: prometheus, otel-collector, tempo, loki, grafana, node-exporter, cadvisor
+  monitoring-net:      
+    driver: bridge
+
 
 volumes:
   postgres:
   pgadmin:
+  prometheus:
+  loki:
+  tempo:
+  grafana:

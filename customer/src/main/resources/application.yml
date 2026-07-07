@@ -1,35 +1,82 @@
+# ===================================================================
+# Server Configuration
+# ===================================================================
 server:
   port: 8080
+  # Clean shutdown for Docker/K8s
+  shutdown: graceful
+
+# ===================================================================
+# Eureka Discovery Client Settings
+# ===================================================================
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
+    # Performance optimization: Reduces log noise and speeds up startup
+    fetch-registry: true
+    register-with-eureka: true
+# ===================================================================
+# Spring Core & Persistence (Postgres) Settings
+# ===================================================================
 spring:
-  thymeleaf:
-    cache: false #Spring boot dev tools
   application:
     name: customer
+
+  thymeleaf:
+    cache: false # Enabled for Spring Boot DevTools
+
   datasource:
-    password: password
-    url: jdbc:postgresql://localhost:5432/customer
-    username: dotmonsscode
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/customer}
+    username: ${SPRING_DATASOURCE_USERNAME:dotmonsscode}
+    password: ${SPRING_DATASOURCE_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+
+  sql:
+    init:
+      mode: always # Required for external DBs like Postgres
+
   jpa:
+    open-in-view: false
     hibernate:
-      ddl-auto: update #Change to update
+      ddl-auto: none # Let your schema.sql handle the table creation
+    defer-datasource-initialization: true # Ensures script runs after JPA is ready
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
     show-sql: true
-  #  zipkin:
-  #    base-url: http://localhost:9411
-  #  rabbitmq:
-  #    addresses: localhost:5672
+
+  # ===================================================================
+  # Messaging & Tracing (Kafka, RabbitMQ)
+  # ===================================================================
+  kafka:
+    # Uses environment variable for Docker network, defaults to localhost:29092 for local dev
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+    consumer:
+      group-id: customer-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+  rabbitmq:
+    addresses: ${SPRING_RABBITMQ_ADDRESSES:localhost:5672}
+
   profiles:
     active: default
 
-  #actuator
+# ===================================================================
+# Actuator & Observability (Prometheus & Micrometer Tracing)
+# ===================================================================
 management:
   endpoints:
     web:
       exposure:
-        include: "*"
+        include: "health,info,metrics,prometheus,bindings,functions"
   endpoint:
     health:
       show-details: always
@@ -39,17 +86,47 @@ management:
   # Adding Prometheus to the metrics
   metrics:
     tags:
-      application: customer-service
+      application: ${spring.application.name}-service
 
-#The two queue types are kafka_queue or rabbit_queue. Any selected option works below
+  # Micrometer Tracing Configuration
+  tracing:
+    sampling:
+      probability: 1.0
+    propagation:
+      type: W3C
+    external-id: ${spring.application.name}-service
+
+  # OTLP Exporter Configuration for sending traces to the OpenTelemetry Collector
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+
+# ===================================================================
+# Logging
+# ===================================================================
+
+loki:
+  url: ${LOKI_URL:http://localhost:3100/loki/api/v1/push}
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level [%thread] %logger{36} [%X{traceId:-}, %X{spanId:-}] - %msg%n"
+
+
+# ===================================================================
+# Custom Application Properties
+# ===================================================================
 queue:
-  queuetype: rabbit_queue
+  queuetype: kafka_queue     # Options: kafka_queue or rabbit_queue
 
 customer:
   secretKey: dotmonstokenkeyvalue2348nr984rnf9lkjrkje9034923u4hfr8u3984ffd
   saltValue: $2a$10$abcdefghijklmnopqrstuv
 
-#End points:
+
+# ===================================================================
+# Microservice External Endpoints
+# ===================================================================
 customeruri:
   kafkauri: http://KAFKASMS/api/v1/sendsmstokafka
   rabbituri: http://SMSRABBITMQ/api/v1/smspublisher

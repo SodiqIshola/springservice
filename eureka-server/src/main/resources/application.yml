@@ -1,20 +1,61 @@
+# ============================================================================
+# Project: Netflix Eureka Service Registry
+# Description: Configuration for the Eureka Discovery Server
+# Documentation: https://spring.io
+# ============================================================================
+
 spring:
+  # Application Identification
   application:
     name: eureka-server
+  # External Configuration Server Import
   config:
     import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888/}
 
+# Port configuration for the Eureka Dashboard and API
 server:
   port: 8761
 
 eureka:
+  # Client configuration: Disabling self-registration
   client:
     registerWithEureka: false
     fetchRegistry: false
+  # Server-specific behavior settings
   server:
     waitTimeInMsWhenSyncEmpty: 0
+
+
 management:
   endpoints:
     web:
       exposure:
         include: "*"
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+  # Adding Prometheus to the metrics
+  metrics:
+    tags:
+      application: ${spring.application.name}-service
+
+  # Micrometer Tracing Configuration
+  tracing:
+    sampling:
+      probability: 1.0
+    propagation:
+      type: W3C
+    external-id: ${spring.application.name}-service
+
+  # OTLP Exporter Configuration for sending traces to the OpenTelemetry Collector
+  otlp:
+    tracing:
+      endpoint: "http://localhost:4317"
+
+logging:
+  structured:
+    format:
+      console: logstash

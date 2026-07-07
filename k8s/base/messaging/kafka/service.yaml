@@ -1,0 +1,21 @@
+# ============================================================================
+# Service: Kafka ClusterIP Service
+# Description: Exposes the Kafka broker inside the cluster on kafka:9092 for
+#              Spring services and Kafka UI.
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: development
+  labels:
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/part-of: springservice
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: kafka
+  ports:
+    - name: broker
+      port: 9092
+      targetPort: broker

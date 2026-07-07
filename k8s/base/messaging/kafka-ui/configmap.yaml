@@ -1,0 +1,18 @@
+# ============================================================================
+# Service: Kafka UI Runtime Configuration
+# Description: Configures the Kafka administration UI to connect to the
+#              single-node Kafka broker inside the cluster.
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-ui-config
+  namespace: development
+  labels:
+    app.kubernetes.io/name: kafka-ui
+    app.kubernetes.io/part-of: springservice
+data:
+  KAFKA_CLUSTERS_0_NAME: "local"
+  KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka:9092"
+  DYNAMIC_CONFIG_ENABLED: "true"
+  JAVA_OPTS: "-Xms64m -Xmx192m"

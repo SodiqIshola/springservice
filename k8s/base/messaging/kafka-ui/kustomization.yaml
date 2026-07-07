@@ -1,0 +1,8 @@
+# ============================================================================
+# Service: Kafka UI Kustomization
+# Description: Groups Kafka UI manifests for base environment deployment.
+# ============================================================================
+resources:
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml

@@ -1,39 +1,90 @@
-spring:
-  application:
-    name: SmsRabbitMq
+# ============================================================================
+# Project: RabbitMQ SMS Service
+# Description: Produces messages for the SMS queue to be consumed by Twilio
+# Documentation: https://rabbitmq.com
+# ============================================================================
 
+# ===================================================================
+# Server Configuration
+# ===================================================================
 server:
   port: 8445
 
 
-  #actuator
+# ===================================================================
+# Eureka Discovery Client Settings
+# ===================================================================
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
     fetch-registry: true
     register-with-eureka: true
     enabled: true
 
-  #actuator
+
+
+# ===================================================================
+# Spring Core & Application Identity
+# ===================================================================
+spring:
+  application:
+    name: SmsRabbitMq
+    # Custom tags for service identification (useful for Prometheus/Grafana)
+    tags:
+      service-type: rabbitmq-service
+
+  # ===================================================================
+  # RabbitMQ Connection Settings
+  # ===================================================================
+  rabbitmq:
+    listener:
+      simple:
+        acknowledge-mode: auto 
+        retry:
+          enabled: true
+          max-attempts: 3
+    addresses: ${SPRING_RABBITMQ_ADDRESSES:localhost:5672}
+
+
+# ===================================================================
+# Management & Monitoring (Actuator & Prometheus)
+# ===================================================================
 management:
   endpoints:
     web:
       exposure:
-        include: "*"
+        # Exposing prometheus for metrics scraping along with standard health
+        include: "health,info,prometheus"
   endpoint:
     health:
       show-details: always
+      show-components: always
+  health:
+    rabbit:
+      # Explicitly enables the RabbitMQ health indicator
+      enabled: true
   info:
     env:
       enabled: true
+  # Prometheus Metrics Export Configuration
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      group: rabbitmq-service
 
+# ===================================================================
+# Application Information (Metadata)
+# ===================================================================
 info:
   app:
     name: RabbitMQSms
-    description: To send messages to rabbit MQ to be consumed by Twilo SMS service
+    description: To send messages to rabbit MQ to be consumed by Twilio SMS service
     version: 1.0.0
 
+# ===================================================================
+# RabbitMQ Messaging Configuration (Queue, Exchange, Routing)
+# ===================================================================
 smsmq:
   queuename: sms_queue
   exchangename: sms_exchange

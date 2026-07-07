@@ -1,0 +1,19 @@
+# ============================================================================
+# Service: pgAdmin Persistent Storage
+# Description: Preserves pgAdmin configuration and server metadata across pod
+#              restarts.
+# ============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pgadmin-data
+  namespace: development
+  labels:
+    app.kubernetes.io/name: pgadmin
+    app.kubernetes.io/part-of: springservice
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 512Mi

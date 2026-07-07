@@ -1,0 +1,25 @@
+# ============================================================================
+# Service: Kubernetes Environment Isolation
+# Description: Defines logical namespaces for Development, Production, and
+#              Monitoring to ensure resource segregation and security scoping.
+# ============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: development
+  labels:
+    env: dev
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  labels:
+    env: prod
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    env: infra

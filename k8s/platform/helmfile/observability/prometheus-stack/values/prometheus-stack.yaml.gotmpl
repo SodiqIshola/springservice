@@ -1,0 +1,309 @@
+# =============================================================================
+# Config: Prometheus Stack Configuration
+# Description: Prometheus + Grafana monitoring stack
+# ============================================================================
+
+# =============================================================================
+# GLOBAL SETTINGS
+# =============================================================================
+global:
+  externalLabels:
+    environment: {{ .Values.global.environment }}
+
+  # Shared RBAC permissions for monitoring components
+  rbac:
+    create: true
+
+    extraRoleRules:
+      - apiGroups: [""]
+        resources:
+          - nodes
+          - nodes/metrics
+          - nodes/stats
+          - nodes/proxy
+          - services
+          - endpoints
+          - pods
+        verbs:
+          - get
+          - list
+          - watch
+
+
+# =============================================================================
+# PROMETHEUS
+# =============================================================================
+prometheus:
+  enabled: true
+
+  # ---------------------------------------------------------------------------
+  # INGRESS
+  # ---------------------------------------------------------------------------
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    annotations:
+      kubernetes.io/ingress.class: traefik
+      traefik.ingress.kubernetes.io/router.entrypoints: web
+    hosts:
+      - {{ .Values.prometheus.host }}
+    paths:
+      - /
+    pathType: Prefix
+
+  # ---------------------------------------------------------------------------
+  # SELF MONITORING
+  # ---------------------------------------------------------------------------
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    selfMonitor: true
+
+  # ---------------------------------------------------------------------------
+  # PROMETHEUS ENGINE
+  # ---------------------------------------------------------------------------
+  prometheusSpec:
+
+    portName: web
+
+    # Allows Prometheus to receive pushed metrics
+    enableRemoteWriteReceiver: true
+
+    # Discover ServiceMonitors across namespaces
+    serviceMonitorSelectorNilUsesHelmValues: false
+
+    scrapeInterval: 30s
+    evaluationInterval: 30s
+
+    retention: {{ .Values.prometheus.retention | default "7d" }}
+    retentionSize: 500MB
+    walCompression: true
+
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: {{ .Values.global.storageClass }}
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: {{ .Values.prometheus.storageSize | default "1Gi" }}
+
+    # -------------------------------------------------------------------------
+    # RESOURCES
+    # -------------------------------------------------------------------------
+    resources:
+      requests:
+        cpu: {{ .Values.global.cpuRequest }}
+        memory: {{ .Values.global.memoryRequest }}
+      limits:
+        cpu: {{ .Values.global.cpuLimit }}
+        memory: {{ .Values.global.memoryLimit }}
+
+    # -------------------------------------------------------------------------
+    # HEALTH CHECKS
+    # -------------------------------------------------------------------------
+    containers:
+      - name: prometheus
+        startupProbe:
+          httpGet:
+            path: /-/ready
+            port: web
+          failureThreshold: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: web
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /-/healthy
+            port: web
+          periodSeconds: 15
+
+#    # -------------------------------------------------------------------------
+#    # ADDITIONAL SCRAPE CONFIGS
+#    # -------------------------------------------------------------------------
+#    additionalScrapeConfigs:
+#      - job_name: 'customer-service'
+#        metrics_path: '/actuator/prometheus'
+#        static_configs:
+#          - targets: ['customer.customer.svc.cluster.local:8080']
+#      - job_name: 'fraud-service'
+#        metrics_path: '/actuator/prometheus'
+#        static_configs:
+#          - targets: ['fraud.customer.svc.cluster.local:8081']
+#      - job_name: 'eureka-server'
+#        metrics_path: '/actuator/prometheus'
+#        static_configs:
+#          - targets: ['eureka-server.discovery.svc.cluster.local:8761']
+#      - job_name: 'rabbitmq-sms-service'
+#        metrics_path: '/actuator/prometheus'
+#        static_configs:
+#          - targets: ['rabbitmq-sms.messaging.svc.cluster.local:8445']
+#      - job_name: 'kafka-sms-service'
+#        metrics_path: '/actuator/prometheus'
+#        static_configs:
+#          - targets: ['kafka-sms.messaging.svc.cluster.local:8498']
+#      - job_name: 'twilio-sms-service'
+#        metrics_path: '/actuator/prometheus'
+#        static_configs:
+#          - targets: ['twilio-sms.messaging.svc.cluster.local:8444']
+#      - job_name: 'otel-collector'
+#        static_configs:
+#          - targets: ['otel-collector.monitoring.svc.cluster.local:8888']
+#      - job_name: 'node-exporter'
+#        static_configs:
+#          - targets: ['node-exporter.monitoring.svc.cluster.local:9100']
+#      - job_name: 'cadvisor'
+#        static_configs:
+#          - targets: ['cadvisor.monitoring.svc.cluster.local:8080']
+
+
+# =============================================================================
+# GRAFANA
+# =============================================================================
+grafana:
+  enabled: true
+
+  # Disable built-in dashboards
+  defaultDashboardsEnabled: false
+  defaultDashboardsTimezone: utc
+  defaultDashboardsEditable: true
+  defaultDashboardsInterval: 1m
+
+  # ---------------------------------------------------------------------------
+  # SECURITY
+  # ---------------------------------------------------------------------------
+  podSecurityContext:
+    fsGroup: 472
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 472
+
+  # ---------------------------------------------------------------------------
+  # HEALTH CHECKS
+  # ---------------------------------------------------------------------------
+  startupProbe:
+    httpGet:
+      path: /api/health
+      port: 3000
+    failureThreshold: 30
+    periodSeconds: 10
+  livenessProbe:
+    httpGet:
+      path: /api/health
+      port: 3000
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /api/health
+      port: 3000
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    failureThreshold: 10
+
+  # ---------------------------------------------------------------------------
+  # GRAFANA METRICS
+  # ---------------------------------------------------------------------------
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    path: /metrics
+    labels:
+      release: kube-prometheus-stack
+
+  # ---------------------------------------------------------------------------
+  # ADMIN LOGIN
+  # ---------------------------------------------------------------------------
+  adminUser: {{ .Values.grafana.adminUser }}
+  adminPassword: {{ .Values.grafana.adminPassword }}
+
+  # ---------------------------------------------------------------------------
+  # RESOURCES
+  # ---------------------------------------------------------------------------
+  resources:
+    requests:
+      cpu: {{ .Values.global.cpuRequest }}
+      memory: {{ .Values.global.memoryRequest }}
+    limits:
+      cpu: {{ .Values.global.cpuLimit }}
+      memory: {{ .Values.global.memoryLimit }}
+
+  # ---------------------------------------------------------------------------
+  # PLUGINS
+  # ---------------------------------------------------------------------------
+  plugins:
+    - grafana-clock-panel
+    - grafana-piechart-panel
+    - grafana-polystat-panel
+
+  # ---------------------------------------------------------------------------
+  # INGRESS
+  # ---------------------------------------------------------------------------
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    annotations:
+      kubernetes.io/ingress.class: traefik
+      traefik.ingress.kubernetes.io/router.entrypoints: web
+    hosts:
+      - {{ .Values.grafana.host }}
+    path: /
+    pathType: Prefix
+
+  # ---------------------------------------------------------------------------
+  # STORAGE
+  # ---------------------------------------------------------------------------
+  persistence:
+    enabled: true
+    storageClassName: {{ .Values.global.storageClass }}
+    accessModes:
+      - ReadWriteOnce
+    size: {{ .Values.grafana.storageSize | default "1Gi" }}
+    type: pvc
+
+  # ---------------------------------------------------------------------------
+  # SIDECAR PROVISIONING
+  # ---------------------------------------------------------------------------
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: ALL
+      folderAnnotation: grafana_folder
+      provider:
+        foldersFromFilesStructure: true
+
+    datasources:
+      enabled: true
+      label: grafana_datasource
+      labelValue: "1"
+      searchNamespace: ALL
+      defaultDatasourceEnabled: false
+
+    alerts:
+      enabled: true
+      label: grafana_alert
+      labelValue: "1"
+      searchNamespace: ALL
+
+  # ---------------------------------------------------------------------------
+  # GRAFANA SETTINGS
+  # ---------------------------------------------------------------------------
+  grafana.ini:
+    server:
+      root_url: http://{{ .Values.grafana.host }}
+      serve_from_sub_path: false
+
+    dashboards:
+      versions_to_keep: 20
+
+    images:
+      cleanup_enabled: true
+      days_to_keep: {{ .Values.grafana.retention | default "7d" }}
+

@@ -1,0 +1,20 @@
+# ============================================================================
+# Service: Customer ClusterIP Service
+# Description: Exposes the customer API inside the development namespace.
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: customer
+  namespace: development
+  labels:
+    app.kubernetes.io/name: customer
+    app.kubernetes.io/part-of: springservice
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: customer
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
